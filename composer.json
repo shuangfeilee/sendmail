@@ -1,0 +1,23 @@
+{
+    "name": "shuangfeilee/sendmail",
+    "description": "发送邮件",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "shuangfeilee",
+            "email": "shuangfeilee@yeah.net"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "ext-openssl": "*",
+        "ext-sockets": "*",
+        "ext-fileinfo": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "mfunc\\": "src/"
+        }
+    }
+}
