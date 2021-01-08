@@ -7,33 +7,33 @@ class Smtp
      * 配置
      * @var array
      */
-    protected $_config;
+	protected $_config;
 
     /**
      * socket资源
      * @var reource
      */
-    protected $_socket;
+	protected $_socket;
 
     /**
      * 错误信息
      * @var string
      */
-    protected $_errmsg;
+	protected $_errmsg;
 
-    public function __construct ($config = [])
-    {
+	public function __construct ($config = [])
+	{
         if (empty($config['host'])) throw new \Exception("请设置SMTP服务器");
         if (empty($config['user'])) throw new \Exception("请设置SMTP用户名");
         if (empty($config['pass'])) throw new \Exception("请设置SMTP密码");
         if (empty($config['from'])) throw new \Exception("请设置SMTP发件人");
 
-        $config['user'] = base64_encode($config['user']);
-        $config['pass'] = base64_encode($config['pass']);
-        empty($config['port']) && $config['port'] = 25; 
-        $config['secu'] = !empty($config['secu']);
-        $this->_config = $config;
-    }
+		$config['user'] = base64_encode($config['user']);
+		$config['pass'] = base64_encode($config['pass']);
+		empty($config['port']) && $config['port'] = 25; 
+		$config['secu'] = !empty($config['secu']);
+		$this->_config = $config;
+	}
 
     /**
      * 设置自定义发件人姓名
@@ -74,9 +74,9 @@ class Smtp
 
     /**
      * 设置邮件附件，多个附件，调用多次
-     * ['源文件路径', '邮件中显示附件名称'],
-     * // 邮件体中附件 图片音频等
-     * ['源文件路径', '名称', 'inline', 'cid']
+     *   ['源文件路径', '邮件中显示附件名称'],
+     *   // 邮件体中附件 图片音频等
+     *   ['源文件路径', '名称', 'inline', 'cid']
      * @access public
      * @param string $file 文件地址
      * @return boolean
@@ -98,8 +98,8 @@ class Smtp
      * @param string $content  邮件内容
      * @return boolen
      */
-    public function sendMail ($to, $subject, $content)
-    {
+	public function sendMail ($to, $subject, $content)
+	{
         // 邮件体中图片资源增加CID
         $pat = '/<\s*img\s+[^>]*?src\s*=\s*(\'|\")(.*?)\\1[^>]*?\/?\s*>/i';
 
@@ -126,7 +126,7 @@ class Smtp
         }
 
         return true;
-    }
+	}
 
     /**
      * 返回错误信息
@@ -162,10 +162,14 @@ class Smtp
         $header .= $this->_rcptTo($to, $command, 'TO');
   
         // 设置抄送
-        $header .= $this->_rcptTo($this->_config['cc'], $command, 'CC');
+        if (isset($this->_config['cc'])) {
+            $header .= $this->_rcptTo($this->_config['cc'], $command, 'CC');
+        }
   
         // 设置秘密抄送
-        $header .= $this->_rcptTo($this->_config['bcc'], $command, 'BCC');
+        if (isset($this->_config['bcc'])) {
+            $header .= $this->_rcptTo($this->_config['bcc'], $command, 'BCC');
+        }
   
         // 主题
         $header .= "Subject: =?UTF-8?B?" . base64_encode($subject) ."?=\r\n";
@@ -237,16 +241,21 @@ class Smtp
         if(!empty($data)) {
             $data = array_unique(array_filter($data));
             $count = count($data);
-            foreach ($data as $key => $val) {
-                $command[] = ["RCPT TO: <" . $val . ">\r\n", 250];
-                if($key == 0){
-                    $str .= "{$type}: <" . $val .">";
-                }
-                else if($key + 1 == $count){
-                    $str .= ",<" . $val .">\r\n";
-                }
-                else{
-                    $str .= ",<" . $val .">";
+            if($count == 1){
+                $command[] = ["RCPT TO: <" . $data[0] . ">\r\n", 250];
+                $str .= "{$type}: <" . $data[0] .">\r\n";
+            } else {
+                foreach ($data as $key => $val) {
+                    $command[] = ["RCPT TO: <" . $val . ">\r\n", 250];
+                    if($key == 0){
+                        $str .= "{$type}: <" . $val .">";
+                    }
+                    else if($key + 1 == $count){
+                        $str .= ",<" . $val .">\r\n";
+                    }
+                    else{
+                        $str .= ",<" . $val .">";
+                    }
                 }
             }
         }
@@ -338,25 +347,25 @@ class Smtp
                 return false;
             }
 
-            //设置加密连接，默认是ssl，如果需要tls连接，可以查看php手册stream_socket_enable_crypto函数的解释
-            stream_socket_enable_crypto($this->_socket, true, STREAM_CRYPTO_METHOD_SSLv23_CLIENT);
-            stream_set_blocking($this->_socket, 1);
-            $str = fread($this->_socket, 1024);
-        } else {
-            $this->_socket = socket_create(AF_INET, SOCK_STREAM, getprotobyname('tcp'));
-            if(!$this->_socket) {
-                $this->_errmsg = socket_strerror(socket_last_error());
-                return false;
-            }
+	        //设置加密连接，默认是ssl，如果需要tls连接，可以查看php手册stream_socket_enable_crypto函数的解释
+	        stream_socket_enable_crypto($this->_socket, true, STREAM_CRYPTO_METHOD_SSLv23_CLIENT);
+	        stream_set_blocking($this->_socket, 1);
+	        $str = fread($this->_socket, 1024);
+    	} else {
+	        $this->_socket = socket_create(AF_INET, SOCK_STREAM, getprotobyname('tcp'));
+	        if(!$this->_socket) {
+	            $this->_errmsg = socket_strerror(socket_last_error());
+	            return false;
+	        }
 
-            socket_set_block($this->_socket);
-            //连接服务器
-            if(!socket_connect($this->_socket, $this->_config['host'], $this->_config['port'])) {
-                $this->_errmsg = socket_strerror(socket_last_error());
-                return false;
-            }
-            $str = socket_read($this->_socket, 1024);
-        }
+	        socket_set_block($this->_socket);
+	        //连接服务器
+	        if(!socket_connect($this->_socket, $this->_config['host'], $this->_config['port'])) {
+	            $this->_errmsg = socket_strerror(socket_last_error());
+	            return false;
+	        }
+	        $str = socket_read($this->_socket, 1024);
+    	}
 
         if(!preg_match("/220+?/", $str)){
             $this->_errmsg = $str;
